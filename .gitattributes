@@ -1,0 +1,7 @@
+data/raw/Online[[:space:]]Retail.xlsx filter=lfs diff=lfs merge=lfs -text
+data/processed/transactions_clean.csv filter=lfs diff=lfs merge=lfs -text
+src/models/churn_model.pkl filter=lfs diff=lfs merge=lfs -text
+src/models/clv_model.pkl filter=lfs diff=lfs merge=lfs -text
+src/models/next_purchase_model.pkl filter=lfs diff=lfs merge=lfs -text
+src/models/kmeans_k4.pkl filter=lfs diff=lfs merge=lfs -text
+src/models/scaler.pkl filter=lfs diff=lfs merge=lfs -text
