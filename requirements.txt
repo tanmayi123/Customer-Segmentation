@@ -1,0 +1,11 @@
+cat > requirements.txt << 'EOF'
+pandas
+numpy
+matplotlib
+seaborn
+openpyxl
+duckdb
+scikit-learn
+jupyter
+ipykernel
+EOF
