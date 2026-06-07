@@ -1,0 +1,15 @@
+cat > .gitignore << 'EOF'
+# Mac system files
+.DS_Store
+
+
+# Python
+venv/
+__pycache__/
+*.pyc
+*.pyo
+.ipynb_checkpoints/
+
+# Environment
+.env
+EOF
