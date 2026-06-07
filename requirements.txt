@@ -11,3 +11,5 @@ ipykernel
 EOFgoogle-generativeai
 google-genai
 python-dotenv
+streamlit
+plotly
