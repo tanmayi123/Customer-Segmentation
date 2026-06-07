@@ -8,4 +8,6 @@ duckdb
 scikit-learn
 jupyter
 ipykernel
-EOF
+EOFgoogle-generativeai
+google-genai
+python-dotenv
