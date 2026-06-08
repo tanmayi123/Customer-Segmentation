@@ -1,4 +1,3 @@
-cat > requirements.txt << 'EOF'
 pandas
 numpy
 matplotlib
@@ -8,8 +7,8 @@ duckdb
 scikit-learn
 jupyter
 ipykernel
-EOFgoogle-generativeai
 google-genai
 python-dotenv
 streamlit
 plotly
+joblib
