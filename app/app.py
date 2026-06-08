@@ -120,9 +120,8 @@ with st.sidebar:
 if page == "About":
     st.title("Customer Segmentation Platform")
     st.write(
-        "An end-to-end customer analytics pipeline built on the UCI Online Retail dataset. "
-        "Covers data engineering, RFM analysis, K-Means clustering, three supervised ML models, "
-        "and LLM-generated segment narratives via the Gemini API."
+        "This platform demonstrates a full end-to-end customer analytics pipeline built on the UCI Online Retail dataset" \
+        "covering data engineering, RFM analysis, K-Means clustering, three supervised ML models, and LLM-generated segment narratives using the Gemini API"
     )
     st.divider()
 
@@ -135,9 +134,8 @@ if page == "About":
     c5.metric("Date end", "Dec 2011")
     st.write(" ")
     st.write(
-        "UK-based non-store online retailer specialising in unique all-occasion gifts. "
-        "Filtered to UK transactions only, yielding 349,203 clean records after removing "
-        "cancellations, missing customer IDs, and zero-value entries."
+        "Dataset sourced from a UK-based non-store online retailer specialising in unique all-occasion gifts. " \
+        "Filtered to UK transactions only, yielding 349,203 clean records after removing cancellations, missing customer IDs, and zero-value entries"
     )
     st.divider()
 
@@ -228,6 +226,7 @@ elif page == "Upload Data":
     st.write(
         "Loads the UCI Online Retail dataset. UK transactions from Dec 2010 to Dec 2011, "
         "3,920 customers"
+        "Link : [UCI Online Retail](https://archive.ics.uci.edu/ml/datasets/online+retail)"
     )
     if st.button("Load sample dataset"):
         with st.spinner("Loading..."):
@@ -271,8 +270,7 @@ elif page == "Upload Data":
 elif page == "Customer Segments":
     st.title("Customer Segments")
     st.write(
-        "RFM-based segmentation using K-Means clustering (k=4) on log-transformed, "
-        "standardised recency, frequency, and monetary features."
+        "Segmentation is driven by RFM analysis, where recency, frequency, and monetary features are log-transformed and standardised before being fed into a K-Means clustering model (k=4) to identify four meaningful customer groups: Champions, Loyal Customers, At Risk, and Lost. Each segment's RFM profile is visualised and accompanied by an AI-generated narrative providing business insights and recommended actions."
     )
     st.divider()
 
@@ -362,7 +360,7 @@ elif page == "Customer Segments":
 
         st.divider()
         st.subheader("Segment analysis")
-        st.write("AI-generated business analysis per segment based on RFM profile.")
+        st.write("The analysis below is LLM-powered, with Gemini producing business insights for each customer segment based on their RFM profile")
 
         selected = st.selectbox(
             "Select segment",
@@ -389,8 +387,8 @@ elif page == "Customer Segments":
 elif page == "ML Predictions":
     st.title("ML Predictions")
     st.write(
-        "Three models trained on a 9-month observation window, validated on the final 3 months. "
-        "Features derived from RFM and transaction history."
+        "Three machine learning models were trained on a 9-month observation window and validated against the final 3 months of data." \
+        "Each model uses features derived from RFM metrics and transaction history to predict future customer behavior. The Churn Prediction model identifies customers at risk of leaving, the CLV Scoring model estimates future revenue potential, and the Next Purchase Propensity model assesses likelihood of a purchase within 30 days. Pre-computed predictions are available for the sample dataset, while uploads will trigger on-the-fly inference with the loaded models."
     )
     st.divider()
 
