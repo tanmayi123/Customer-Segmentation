@@ -1,5 +1,3 @@
-# Customer Segmentation Platform
-
 ---
 title: Customer Segmentation
 emoji: 📊
@@ -8,6 +6,8 @@ colorTo: indigo
 sdk: docker
 pinned: false
 ---
+
+# Customer Segmentation Platform
 
 An end-to-end customer analytics platform that takes raw e-commerce transaction data and produces RFM-based customer segments, three supervised ML model predictions, and LLM-generated business narratives per segment. Built on the UCI Online Retail dataset and deployable as a Streamlit web app via Docker and Hugging Face Spaces.
 
