@@ -9,13 +9,117 @@ pinned: false
 
 # Customer Segmentation Platform
 
-An end-to-end customer analytics platform that takes raw e-commerce transaction data and produces RFM-based customer segments, three supervised ML model predictions, and LLM-generated business narratives per segment. Built on the UCI Online Retail dataset and deployable as a Streamlit web app via Docker and Hugging Face Spaces.
+An end-to-end customer analytics platform built on the UCI Online Retail dataset. The platform takes raw e-commerce transaction data and produces RFM-based customer segments, three supervised ML model predictions, and LLM-generated business narratives per segment. Deployed as a Streamlit web app via Docker on Hugging Face Spaces.
+
+**Live demo:** [huggingface.co/spaces/TanmayiShurpali/customer-segmentation](https://huggingface.co/spaces/TanmayiShurpali/customer-segmentation)
+
+---
+
+## Overview
+
+Most customer analytics pipelines stop at segmentation. This platform goes further by combining unsupervised clustering with three supervised ML models and an LLM layer that translates segment statistics into actionable business narratives. The result is a self-contained analytics tool that takes a raw transactions file and produces strategic recommendations without any manual interpretation.
+
+The full pipeline runs in under a minute on a new dataset and supports both a pre-loaded sample mode and a live upload mode where users supply their own transaction data.
 
 ---
 
 ## Live Demo
 
-[Link to be added after Hugging Face deployment]
+The app is deployed on Hugging Face Spaces and publicly accessible:
+
+[https://huggingface.co/spaces/TanmayiShurpali/customer-segmentation](https://huggingface.co/spaces/TanmayiShurpali/customer-segmentation)
+
+To explore, use the "Load sample dataset" button on the Upload Data page. This loads the pipeline and shows results for the UCI Online Retail dataset.
+---
+
+## What It Does
+
+### 1. Data Cleaning and Feature Engineering
+
+Raw transaction files are cleaned by removing cancellations (invoices prefixed with C), records with missing CustomerID, zero or negative quantities, and exact duplicate rows. Revenue is computed as Quantity multiplied by UnitPrice. The pipeline then engineers eight customer-level features using SQL queries running directly on in-memory dataframes:
+
+- Recency: days since the customer's last purchase relative to a snapshot date
+- Frequency: count of distinct invoice numbers
+- Monetary: total lifetime revenue
+- Average order value: mean revenue per invoice
+- Total items: sum of quantities purchased
+- Unique products: count of distinct stock codes purchased
+- Customer age in days: span between first and last purchase date
+- Revenue per order: total revenue divided by order count
+
+### 2. RFM Segmentation
+
+RFM features are log-transformed to correct for right skew and then standardised using StandardScaler. K-Means clustering is applied with k=4, selected based on the elbow method and silhouette scoring evaluated across k=2 to k=10. The optimal k=4 yields a silhouette score of 0.34 with four clearly separable business segments.
+
+Cluster labels are assigned by ranking clusters on average monetary value, producing the following segments:
+
+| Segment | Customers | Avg Recency | Avg Frequency | Avg Monetary |
+|---|---|---|---|---|
+| Champions | 636 | 11.86 days | 13.6 orders | £7,192 |
+| Loyal Customers | 1,050 | 64.86 days | 4.29 orders | £1,749 |
+| At Risk | 823 | 22.94 days | 1.94 orders | £476 |
+| Lost | 1,411 | 190.66 days | 1.35 orders | £342 |
+
+### 3. ML Models
+
+Three supervised models are trained on a 9-month observation window (December 2010 to September 2011) with labels derived from the final 3 months (October 2011 to December 2011). All three models use the same 8 engineered features.
+
+**Churn Prediction (Random Forest Classifier)**
+Predicts whether a customer will not purchase during the prediction window. The dataset has 48.6% positive churn rate. ROC-AUC of 0.727. Top features by importance are monetary value, frequency, customer age, and recency.
+
+**Customer Lifetime Value Scoring (Gradient Boosting Regressor)**
+Predicts total revenue a customer will generate in the prediction window. The target is log1p-transformed to reduce skew. MAE of £362.78 and R-squared of 0.23 on holdout. Top features are frequency, monetary value, and unique products.
+
+**Next Purchase Propensity (Gradient Boosting Classifier)**
+Predicts whether a customer will purchase within 30 days of the observation window end. 26.5% positive rate. ROC-AUC of 0.713. Top features are frequency, recency, monetary value, and total items.
+
+### 4. LLM Integration
+
+Segment narratives are generated using the Gemini 2.5 Flash API. Each segment receives a structured prompt containing its name, size as a percentage of the total customer base, and average RFM values, along with business context about the retailer type and dataset. The model returns a structured 4-section executive report covering:
+
+- Segment profile: behavioural interpretation of the RFM metrics
+- Revenue impact: estimated total and relative contribution
+- Churn and retention risk: assessment based on recency relative to expected purchase cycles
+- Recommended actions: three specific tactics each with a channel, targeting rationale, and expected impact on RFM metrics
+
+For the sample dataset, narratives are pre-cached and load instantly. For uploaded data, narratives are generated fresh via the API.
+
+---
+
+## App Pages
+
+**About**
+Project overview, dataset statistics, pipeline documentation, and tech stack.
+
+**Upload Data**
+File uploader accepting transaction CSV files, plus a one-click button to load the pre-computed sample dataset. Displays dataset summary on load.
+
+**Customer Segments**
+Segment distribution bar and pie charts, RFM metric comparisons across segments, a summary metrics table, and the Gemini-generated narrative for each segment selectable via dropdown.
+
+**ML Predictions**
+Model performance metrics, a filterable customer table with all three prediction scores, score distribution histograms, and a CSV export of the filtered results.
+
+---
+
+## Dataset
+
+**UCI Online Retail Dataset**
+
+- 541,909 raw transactions
+- Cleaned to 349,203 UK transactions
+- 3,920 unique customers
+- 3,645 unique products
+- Date range: December 2010 to December 2011
+- Source: [UCI Machine Learning Repository](https://archive.ics.uci.edu/dataset/352/online+retail)
+
+The dataset covers a UK-based non-store online retailer specialising in unique all-occasion gifts. Analysis is filtered to UK transactions only after cleaning.
+
+**Required columns for uploaded files:**
+
+```
+InvoiceNo, StockCode, Description, Quantity, InvoiceDate, UnitPrice, CustomerID, Country
+```
 
 ---
 
@@ -24,85 +128,55 @@ An end-to-end customer analytics platform that takes raw e-commerce transaction 
 ```
 Customer-Segmentation/
 ├── data/
-│   ├── raw/                              # Raw input data (UCI Online Retail.xlsx)
-│   └── processed/                        # Cleaned data, RFM scores, ML predictions, narratives
+│   ├── raw/
+│   │   └── Online Retail.xlsx
+│   └── processed/
+│       ├── transactions_clean.csv
+│       ├── rfm_scored.csv
+│       ├── rfm_clustered.csv
+│       ├── ml_predictions.csv
+│       └── segment_narratives.json
 ├── notebooks/
-│   ├── 01_eda_and_rfm.ipynb              # EDA, DuckDB SQL analysis, RFM segmentation
-│   ├── 02_prediction_pipeline.ipynb      # K-Means model training and prediction pipeline
-│   ├── 03_ml_models.ipynb                # Churn, CLV, and next-purchase models
-│   └── 04_llm_integration.ipynb         # Gemini API segment narrative generation
+│   ├── 01_eda_and_rfm.ipynb
+│   ├── 02_prediction_pipeline.ipynb
+│   ├── 03_ml_models.ipynb
+│   └── 04_llm_integration.ipynb
 ├── src/
-│   ├── pipeline.py                       # Reusable RFM and segmentation pipeline module
-│   ├── llm.py                            # Gemini API narrative generation module
-│   └── models/                           # Saved model artifacts (.pkl, .json)
+│   ├── pipeline.py
+│   ├── llm.py
+│   └── models/
+│       ├── kmeans_k4.pkl
+│       ├── scaler.pkl
+│       ├── churn_model.pkl
+│       ├── clv_model.pkl
+│       ├── next_purchase_model.pkl
+│       ├── cluster_label_map.json
+│       └── feature_names.json
 ├── app/
-│   ├── app.py                            # Streamlit application
-│   └── utils.py                          # Pipeline orchestration and utility functions
+│   ├── app.py
+│   └── utils.py
 ├── .streamlit/
-│   └── config.toml                       # Streamlit theme configuration
-├── Dockerfile                            # Container definition for deployment
-├── requirements.txt                      # Python dependencies
+│   └── config.toml
+├── Dockerfile
+├── requirements.txt
 └── README.md
 ```
 
 ---
 
-## What It Does
+## Notebooks
 
-### 1. Data cleaning and feature engineering
+**01_eda_and_rfm.ipynb**
+Data loading, cleaning, and exploratory analysis. SQL-based analysis covering monthly revenue trends, top products by revenue, and revenue by day of week. RFM feature computation using NTILE scoring, segment labelling, and distribution visualisation.
 
-Raw transactions are cleaned by removing cancellations (invoices prefixed with C), rows with missing CustomerID, zero or negative quantities, and duplicate records. Revenue is computed as Quantity x UnitPrice. Eight customer-level features are engineered using DuckDB SQL queries running directly on pandas dataframes:
+**02_prediction_pipeline.ipynb**
+Log transformation and StandardScaler feature prep. Elbow method and silhouette scoring for k selection across k=2 to k=10. K-Means training with k=4, cluster labelling by monetary rank, and reusable predict_segments() function saved to src/pipeline.py.
 
-- Recency: days since last purchase
-- Frequency: number of distinct orders
-- Monetary: total lifetime spend
-- Average order value
-- Total items purchased
-- Unique products purchased
-- Customer age in days
-- Revenue per order
+**03_ml_models.ipynb**
+Observation and prediction window construction. Feature engineering for 3,253 customers in the observation window. Training and evaluation of all three models with ROC curve analysis and feature importance plots.
 
-### 2. RFM segmentation
-
-RFM features are log-transformed to correct for right skew, then standardised using StandardScaler. K-Means clustering is applied with k=4, selected based on elbow method and silhouette scoring across k=2 to k=10. The optimal k=4 yields a silhouette score of 0.34 with four clearly interpretable business segments: Champions, Loyal Customers, At Risk, and Lost.
-
-### 3. ML models
-
-Three supervised models are trained on a 9-month observation window (Dec 2010 to Sep 2011) with labels derived from the final 3 months (Oct 2011 to Dec 2011).
-
-| Model | Type | Label | Performance |
-|---|---|---|---|
-| Churn prediction | Random Forest Classifier | No purchase in final 3 months | ROC-AUC: 0.727 |
-| CLV scoring | Gradient Boosting Regressor | Revenue in final 3 months | MAE: £362.78 |
-| Next purchase propensity | Gradient Boosting Classifier | Purchase within next 30 days | ROC-AUC: 0.713 |
-
-### 4. LLM integration
-
-Segment narratives are generated using the Gemini 2.5 Flash API. Each segment receives a structured prompt containing its RFM metrics, segment size as a percentage of the total customer base, and business context. The model returns a 4-section executive report covering segment profile, revenue impact, churn and retention risk, and recommended actions with specific channels and expected outcomes tied to RFM metrics.
-
----
-
-## Dataset
-
-**UCI Online Retail Dataset**
-
-- 541,909 transactions
-- 3,920 unique customers (UK only after filtering)
-- 3,645 unique products
-- Date range: December 2010 to December 2011
-- Source: [UCI Machine Learning Repository](https://archive.ics.uci.edu/dataset/352/online+retail)
-
-The dataset covers a UK-based non-store online retailer specialising in unique all-occasion gifts. Analysis is filtered to UK transactions only, yielding 349,203 clean records.
-
-**Required columns for upload:**
-
-```
-InvoiceNo, StockCode, Description, Quantity, InvoiceDate, UnitPrice, CustomerID, Country
-```
-
-**Compatible test dataset:**
-
-[Online Retail II UCI](https://www.kaggle.com/datasets/mashlyn/online-retail-ii-uci) on Kaggle. Same retailer, two-year version (2009-2011), identical column structure.
+**04_llm_integration.ipynb**
+Gemini 2.5 Flash API integration. Structured prompt engineering for executive-level segment reports. Batch narrative generation for all four segments and export to segment_narratives.json.
 
 ---
 
@@ -111,45 +185,41 @@ InvoiceNo, StockCode, Description, Quantity, InvoiceDate, UnitPrice, CustomerID,
 | Layer | Tools |
 |---|---|
 | Data processing | Python 3.13, pandas, numpy |
-| SQL analysis | DuckDB |
+| SQL analysis | In-memory SQL on dataframes |
 | ML modeling | scikit-learn (K-Means, Random Forest, Gradient Boosting) |
 | Visualisation | Plotly |
 | LLM | Google Gemini 2.5 Flash |
-| App | Streamlit |
+| App framework | Streamlit |
 | Containerisation | Docker |
 | Deployment | Hugging Face Spaces |
 | Version control | GitHub |
 
 ---
 
-## Setup and Installation
+## Local Setup
 
 ### Prerequisites
 
 - Python 3.10 or higher
 - A Google Gemini API key from [Google AI Studio](https://aistudio.google.com/app/apikey)
 
-### Local setup
+### Installation
 
 ```bash
-# Clone the repository
 git clone https://github.com/tanmayi123/Customer-Segmentation.git
 cd Customer-Segmentation
 
-# Create and activate virtual environment
 python -m venv venv
 source venv/bin/activate
 
-# Install dependencies
 pip install -r requirements.txt
 
-# Add your Gemini API key
 echo "GEMINI_API_KEY=your_key_here" > .env
 ```
 
-### Download the dataset
+### Dataset
 
-Download the UCI Online Retail dataset from [here](https://archive.ics.uci.edu/dataset/352/online+retail) and place the Excel file at:
+Download the UCI Online Retail dataset from the [UCI Machine Learning Repository](https://archive.ics.uci.edu/dataset/352/online+retail) and place the file at:
 
 ```
 data/raw/Online Retail.xlsx
@@ -157,7 +227,7 @@ data/raw/Online Retail.xlsx
 
 ### Run the notebooks
 
-Run the notebooks in order to reproduce the full pipeline:
+Run in order to reproduce the full pipeline:
 
 ```
 notebooks/01_eda_and_rfm.ipynb
@@ -177,65 +247,28 @@ streamlit run app/app.py
 ## Docker
 
 ```bash
-# Build the image
 docker build -t customer-segmentation .
 
-# Run the container
-docker run -p 8501:8501 -e GEMINI_API_KEY=your_key_here customer-segmentation
+docker run -p 7860:7860 -e GEMINI_API_KEY=your_key_here customer-segmentation
 ```
 
 ---
 
-## Notebooks Overview
+## Requirements
 
-### 01_eda_and_rfm.ipynb
-
-- Data loading and cleaning
-- Exploratory data analysis using DuckDB SQL queries on pandas dataframes
-- Monthly revenue trends, top products, revenue by day of week
-- RFM feature computation and scoring
-- Segment labelling and visualisation
-
-### 02_prediction_pipeline.ipynb
-
-- Log transformation and StandardScaler feature prep
-- Elbow method and silhouette scoring for optimal k selection
-- K-Means model training with k=4
-- Cluster labelling and visualisation
-- Reusable predict_segments() pipeline function saved to src/pipeline.py
-
-### 03_ml_models.ipynb
-
-- Observation and prediction window construction
-- Feature engineering via DuckDB
-- Churn label: binary (purchased in final 3 months or not)
-- CLV label: continuous (total revenue in final 3 months)
-- Next purchase label: binary (purchased within 30 days of observation end)
-- Model training, evaluation, and ROC curve analysis
-- Feature importance analysis for all three models
-
-### 04_llm_integration.ipynb
-
-- Gemini 2.5 Flash API integration
-- Structured prompt engineering for executive-level segment reports
-- Batch narrative generation for all four segments
-- Narratives saved to data/processed/segment_narratives.json
-
----
-
-## Segment Definitions
-
-| Segment | Description |
-|---|---|
-| Champions | High recency, high frequency, highest spend. Core revenue drivers. |
-| Loyal Customers | Moderate recency, moderate-high frequency, solid spend. Retention focus. |
-| At Risk | Recent but low frequency and low spend. New customers not yet converted. |
-| Lost | High recency (long time since purchase), low frequency, low spend. Re-engagement needed. |
-
----
-
-## Author
-
-**Tanmayi Shurpali**
-
-[github.com/tanmayi123](https://github.com/tanmayi123)
+```
+pandas
+numpy
+matplotlib
+seaborn
+openpyxl
+duckdb
+scikit-learn
+jupyter
+ipykernel
+google-genai
+python-dotenv
+streamlit
+plotly
+joblib
+```
