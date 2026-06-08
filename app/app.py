@@ -56,6 +56,15 @@ st.markdown("""
     .stButton > button p {
         color: #FFFFFF !important;
     }
+    /* Fix table header visibility */
+    [data-testid="stDataFrame"] th {
+        color: #1B2B35 !important;
+        background-color: #E8E2D9 !important;
+        font-weight: 600 !important;
+    }
+    [data-testid="stDataFrame"] td {
+        color: #2A2A2A !important;
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -215,51 +224,21 @@ elif page == "Upload Data":
     col1, col2 = st.columns(2, gap="large")
 
     with col1:
-        st.subheader("Upload your dataset")
-        st.write(
-            "CSV file with columns: InvoiceNo, CustomerID, InvoiceDate, "
-            "Quantity, UnitPrice, StockCode, Country"
-        )
-        uploaded = st.file_uploader("", type=["csv"], label_visibility="collapsed")
-        if uploaded:
-            with st.spinner("Running pipeline..."):
-                try:
-                    df_raw = pd.read_csv(uploaded, encoding="unicode_escape")
-                    df_clean, rfm_df, ml_preds, segment_summary = run_full_pipeline(
-                        df_raw, models
-                    )
-                    from llm import generate_all_narratives
-                    narratives = generate_all_narratives(segment_summary)
-                    st.session_state["data_loaded"]     = True
-                    st.session_state["rfm_df"]          = rfm_df
-                    st.session_state["ml_preds"]        = ml_preds
-                    st.session_state["segment_summary"] = segment_summary
-                    st.session_state["narratives"]      = narratives
-                    st.session_state["data_source"]     = uploaded.name
-                    st.success("Pipeline complete. Navigate to Customer Segments or ML Predictions.")
-                except Exception as e:
-                    st.error(f"Pipeline failed: {e}")
-
-    with col2:
-        st.subheader("Use sample dataset")
-        st.write(
-            "Loads the UCI Online Retail dataset. UK transactions from Dec 2010 to Dec 2011, "
-            "3,920 customers. No upload required. Results are pre-computed for instant loading."
-        )
-        st.write(" ")
-        st.write(" ")
-        st.write(" ")
-        st.write(" ")
-        if st.button("Load sample dataset"):
-            with st.spinner("Loading..."):
-                rfm_df, ml_preds, narratives, segment_summary = get_sample_data()
-                st.session_state["data_loaded"]     = True
-                st.session_state["rfm_df"]          = rfm_df
-                st.session_state["ml_preds"]        = ml_preds
-                st.session_state["segment_summary"] = segment_summary
-                st.session_state["narratives"]      = narratives
-                st.session_state["data_source"]     = "UCI Online Retail (sample)"
-            st.success("Sample data loaded. Navigate to Customer Segments or ML Predictions.")
+        st.subheader("Load sample Dataset")
+    st.write(
+        "Loads the UCI Online Retail dataset. UK transactions from Dec 2010 to Dec 2011, "
+        "3,920 customers"
+    )
+    if st.button("Load sample dataset"):
+        with st.spinner("Loading..."):
+            rfm_df, ml_preds, narratives, segment_summary = get_sample_data()
+            st.session_state["data_loaded"]     = True
+            st.session_state["rfm_df"]          = rfm_df
+            st.session_state["ml_preds"]        = ml_preds
+            st.session_state["segment_summary"] = segment_summary
+            st.session_state["narratives"]      = narratives
+            st.session_state["data_source"]     = "UCI Online Retail (sample)"
+        st.success("Sample data loaded. Navigate to Customer Segments or ML Predictions.")
 
     if st.session_state["data_loaded"]:
         st.divider()
@@ -402,7 +381,8 @@ elif page == "Customer Segments":
             c4.metric("Avg Monetary",  f"£{row['avg_monetary']:,.0f}")
 
             st.write(" ")
-            st.markdown(narratives[selected])
+            with st.container(border=True):
+                st.markdown(narratives[selected])
 
 
 # ── ML Predictions ─────────────────────────────────────────
